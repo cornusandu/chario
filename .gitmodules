@@ -1,0 +1,4 @@
+[submodule "dependencies/betterSTD"]
+	path = dependencies/betterSTD
+	url = https://github.com/cornusandu-org/BetterSTD.git
+	branch = dev
