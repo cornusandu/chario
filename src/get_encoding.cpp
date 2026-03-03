@@ -10,6 +10,8 @@
 #include "get_encoding.hpp"
 #include "betterSTD/include/bstd/libstdc/libstdc.hpp"
 
+static const POINT nullp = POINT(NULL);
+
 bool is_valid_utf8(const uchar* s, size_t len) {
     size_t i = 0;
 
@@ -171,7 +173,6 @@ Encoding get_encoding(FILE* f, size_t fileSampleSize) {
     if (sample_size == 0) {
         return Encoding::UTF8;
     }
-    POINT nullp = POINT(NULL);
     POINT datap = alloc_mem(nullp, sample_size);
     if (datap.isNull()) {
         fprintf(stderr, "chario: alloc_mem() failed (external bstd/libstd failure).\n");
