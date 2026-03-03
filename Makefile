@@ -15,7 +15,7 @@ chario.lib: $(OBJECTS)
 	gcc-ar rcs $@ $^
 
 %.o: src/%.cpp
-	g++ -c $^ -o $@ -I./chario --std=c++20
+	g++ -c $^ -o $@ -I./chario -I./dependencies --std=c++20
 
 clean:
-	rm *.o
+	rm -f *.o

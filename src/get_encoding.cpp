@@ -8,6 +8,7 @@
 #include "compat.hpp"
 #include "cmem.hpp"
 #include "get_encoding.hpp"
+#include "betterSTD/include/bstd/libstdc/libstdc.hpp"
 
 bool is_valid_utf8(const uchar* s, size_t len) {
     size_t i = 0;
@@ -116,6 +117,7 @@ _no_bom_data _get_no_bom(const char* buffer, int bufferSize) {
 
     ucsdet_close(csd);
 
+    // TODO: Fix memory leak
     return _no_bom_data {.encoding = (const char*)mreloc(encoding, strlen(encoding) + 1), .confidence = confidence};
 }
 
@@ -166,17 +168,37 @@ Encoding get_encoding(FILE* f, size_t fileSampleSize) {
     #endif
 
     size_t sample_size = st.st_size < fileSampleSize ? st.st_size : fileSampleSize;
-    char* data = (char*) malloc(sample_size);
+    if (sample_size == 0) {
+        return Encoding::UTF8;
+    }
+    POINT nullp = POINT(NULL);
+    POINT datap = alloc_mem(nullp, sample_size); //malloc(sample_size);
+    if (datap.isNull()) {
+        fprintf(stderr, "chario: alloc_mem() failed (external bstd/libstd failure).\n");
+        fflush(stderr);
+        abort();
+    }
+    char* data = (char*)(void*)datap;
     size_t real_sample_size = fread(data, 1, sample_size, f);
     if (real_sample_size == 0) {
         fseek(f, 0, SEEK_SET);
-        free(data);
+        dealloc_mem(datap, sample_size);
         return Encoding::UTF8;
     }
+    if (!protect_mem(datap, sample_size, MemProtect::READ, NULL)) {
+        fprintf(stderr, "chario: protect_mem() failed (external bstd/libstd failure).\n");
+        fflush(stderr);
+        abort();
+    };
     
     fseek(f, 0, SEEK_SET);
     Encoding no_bom = detect_no_bom(data, real_sample_size);
-    free(data);
+
+    if (!dealloc_mem(datap, sample_size)) {
+        // NOT fatal, just a memory leak
+        fprintf(stderr, "chario: dealloc_mem() failed repeatedly (external bstd/libstd failure).\n");
+        fflush(stderr);
+    }
 
     return no_bom;
 }
