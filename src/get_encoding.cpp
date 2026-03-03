@@ -117,7 +117,6 @@ _no_bom_data _get_no_bom(const char* buffer, int bufferSize) {
 
     ucsdet_close(csd);
 
-    // TODO: Fix memory leak
     return _no_bom_data {.encoding = (const char*)mreloc(encoding, strlen(encoding) + 1), .confidence = confidence};
 }
 
@@ -126,14 +125,15 @@ Encoding detect_no_bom(const char* buffer, int bufferSize) {
     if (result.confidence <= 20)
         return is_valid_utf8((const uchar*)buffer, bufferSize) ? Encoding::UTF8 : Encoding::Unknown;
 
-    if (!strcmp(result.encoding, "UTF-8"))    return Encoding::UTF8;
-    if (!strcmp(result.encoding, "UTF-16"))   return Encoding::UTF16;
-    if (!strcmp(result.encoding, "UTF-16LE")) return Encoding::UTF16_LE;
-    if (!strcmp(result.encoding, "UTF-16BE")) return Encoding::UTF16_BE;
-    if (!strcmp(result.encoding, "UTF-32"))   return Encoding::UTF32;
-    if (!strcmp(result.encoding, "UTF-32LE")) return Encoding::UTF32_LE;
-    if (!strcmp(result.encoding, "UTF-32BE")) return Encoding::UTF32_BE;
+    if (!strcmp(result.encoding, "UTF-8"))    {free((void*)result.encoding); return Encoding::UTF8;}
+    if (!strcmp(result.encoding, "UTF-16"))   {free((void*)result.encoding); return Encoding::UTF16;}
+    if (!strcmp(result.encoding, "UTF-16LE")) {free((void*)result.encoding); return Encoding::UTF16_LE;}
+    if (!strcmp(result.encoding, "UTF-16BE")) {free((void*)result.encoding); return Encoding::UTF16_BE;}
+    if (!strcmp(result.encoding, "UTF-32"))   {free((void*)result.encoding); return Encoding::UTF32;}
+    if (!strcmp(result.encoding, "UTF-32LE")) {free((void*)result.encoding); return Encoding::UTF32_LE;}
+    if (!strcmp(result.encoding, "UTF-32BE")) {free((void*)result.encoding); return Encoding::UTF32_BE;}
     else {
+        free((void*)result.encoding);
         if (is_valid_utf8((const uchar*)buffer, bufferSize))
             return Encoding::UTF8;
         else
@@ -172,7 +172,7 @@ Encoding get_encoding(FILE* f, size_t fileSampleSize) {
         return Encoding::UTF8;
     }
     POINT nullp = POINT(NULL);
-    POINT datap = alloc_mem(nullp, sample_size); //malloc(sample_size);
+    POINT datap = alloc_mem(nullp, sample_size);
     if (datap.isNull()) {
         fprintf(stderr, "chario: alloc_mem() failed (external bstd/libstd failure).\n");
         fflush(stderr);
